@@ -24,6 +24,7 @@
             padding: 10px;
             margin-bottom: 10px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            cursor: grab;
         }
         .kanban-card h3 {
             margin: 0;
@@ -55,17 +56,17 @@
     <div class="container mx-auto p-4">
         <h1 class="text-3xl font-bold text-center mb-8">Tablero Kanban</h1>
         <div class="kanban-board">
-            <div class="kanban-lane" id="pending">
+            <div class="kanban-lane" id="pending" ondrop="drop(event)" ondragover="allowDrop(event)">
                 <h2 class="text-xl font-semibold mb-4">Pendientes</h2>
                 <div id="pending-tasks"></div>
                 <button onclick="openTaskModal('pending')" class="w-full bg-blue-500 text-white py-2 px-4 rounded-lg">Agregar Tarea</button>
             </div>
-            <div class="kanban-lane" id="in-progress">
+            <div class="kanban-lane" id="in-progress" ondrop="drop(event)" ondragover="allowDrop(event)">
                 <h2 class="text-xl font-semibold mb-4">En Proceso</h2>
                 <div id="in-progress-tasks"></div>
                 <button onclick="openTaskModal('in-progress')" class="w-full bg-blue-500 text-white py-2 px-4 rounded-lg">Agregar Tarea</button>
             </div>
-            <div class="kanban-lane" id="completed">
+            <div class="kanban-lane" id="completed" ondrop="drop(event)" ondragover="allowDrop(event)">
                 <h2 class="text-xl font-semibold mb-4">Completado</h2>
                 <div id="completed-tasks"></div>
                 <button onclick="openTaskModal('completed')" class="w-full bg-blue-500 text-white py-2 px-4 rounded-lg">Agregar Tarea</button>
@@ -106,6 +107,9 @@
             tasks[lane].forEach((task, index) => {
                 const taskElement = document.createElement('div');
                 taskElement.className = 'kanban-card';
+                taskElement.draggable = true;
+                taskElement.id = `task-${lane}-${index}`;
+                taskElement.setAttribute('ondragstart', 'drag(event)');
                 taskElement.innerHTML = `
                     <h3>${task.title}</h3>
                     <p>${task.description}</p>
@@ -148,6 +152,32 @@
 
         function deleteTask(lane, index) {
             tasks[lane].splice(index, 1);
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            renderTasks();
+        }
+
+        // Funcionalidad de Drag & Drop
+        function allowDrop(event) {
+            event.preventDefault();
+        }
+
+        function drag(event) {
+            event.dataTransfer.setData("text", event.target.id);
+        }
+
+        function drop(event) {
+            event.preventDefault();
+            const taskId = event.dataTransfer.getData("text");
+            const taskElement = document.getElementById(taskId);
+            const newLane = event.target.closest('.kanban-lane').id;
+
+            // Extraer la tarea del carril original
+            const [originalLane, index] = taskId.split('-').slice(1);
+            const task = tasks[originalLane][index];
+            tasks[originalLane].splice(index, 1);
+
+            // Agregar la tarea al nuevo carril
+            tasks[newLane].push(task);
             localStorage.setItem('tasks', JSON.stringify(tasks));
             renderTasks();
         }
